@@ -1,0 +1,449 @@
+```{r include=FALSE}
+##Install/Load Packages
+ipak <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new.pkg))
+    install.packages(new.pkg, dependencies = TRUE, repos = "http://cran.us.r-project.org")
+  sapply(pkg, require, character.only = TRUE)
+}
+
+packages <- c("psych","ggplot2","stargazer","jtools","multcomp","janitor","interactions",
+              "tidyverse","scales", "readr", "BayesFactor", "scatterplot3d", "dplyr", "ggstatsplot", "BayesFactor")
+ipak(packages)
+
+```
+# Exclusion criteria:
+email = remove duplicates
+missing values on smell taste chemestesis
+Sanity check
+
+# Group
+Q7__COVID_diagnosis
+ 
+# Descriptive by group
+ Q1_1__Year_of_birth                                                                               : num [1:40] 1996 1993 1958 1995 1976 ...
+ $ Q2__Country_of_Residence                                                                          : chr [1:40] "USA" "Canada" "USA" "Qatar" ...
+ $ Q3__City_of_Residence                                                                             : chr [1:40] "State College" "Montréal, Quėbec" "Falmouth" 
+ $ Q4__Gender
+"Combustible_cigarette_use_no"
+"E-cigarette_use_no"                                                               
+ 
+# Smell
+ $ Q12_1__Smell_before_illness                                                                       : num [1:40] 100 79.3 NA NA NA NA 95.8 100 NA 70.8 ...
+ $ Q12_2__Smell_during_illness                                                                       : num [1:40] 0.4 11.1 NA NA NA NA 0 7.3 NA 0.9 ...
+ $ Q13__1__I_cannot_smell_at_all_/_Smells_smell_less_strong_than_they_did_before                     : num [1:40] 0 1 NA NA NA NA 1 1 NA 0 ...
+ $ Q13__2__Smells_smell_different_than_they_did_before_(the_quality_of_smell_has_changed)            : num [1:40] 0 1 NA NA NA NA 0 0 NA 0 ...
+ $ Q13__3__I_can_smell_things_that_aren't_there_(for_example_I_smell_burning_when_nothing_is_on_fire): num [1:40] 0 0 NA NA NA NA 1 0 NA 0 ...
+ $ Q13__4__Sense_of_smell_fluctuates_(comes_and_goes)
+ 
+# Nasal patency 
+ $ Q15_1__Blocked_nose_before_illness                                                                : num [1:40] 0.4 1.2 NA NA NA NA 4.5 0 NA 0.6 ...
+ $ Q15_2__Blocked_nose_during_illness    
+ 
+# Taste
+ $ Q16_1__Taste_before_illness                                                                       : num [1:40] 91.1 75.5 NA NA NA NA 95.8 100 NA 100 ...
+ $ Q16_2__Taste_during_illness                                                                       : num [1:40] 0.7 52.2 NA NA NA NA 3.6 20 NA 0.3 ...
+ $ Q17__1__Sweet                                                                                     : num [1:40] 0 0 NA NA NA NA 1 1 NA 0 ...
+ $ Q17__2__Salty                                                                                     : num [1:40] 0 0 NA NA NA NA 1 0 NA 0 ...
+ $ Q17__3__Sour                                                                                      : num [1:40] 0 0 NA NA NA NA 1 0 NA 0 ...
+ $ Q17__4__Bitter                                                                                    : num [1:40] 0 0 NA NA NA NA 1 1 NA 0 ...
+ $ Q17__5__Savory/Umami                                                                              : num [1:40] 0 0 NA NA NA NA 0 1 NA 0 ...
+
+#Chemestesis
+ $ Q19_1__Chemethesis_before_illness                                                                 : num [1:40] 94.3 33.4 NA NA NA NA 63.5 90 NA 66.3 ...
+ $ Q19_2__Chemesthesis_during_illness     
+ 
+```{r import and prepare database}
+#Database pulled on April 18th 8:34AM ET by Alyssa Joy Bakke, Penn State University
+#Accessed on April 19th 4:00AM ET by Valentina Parma for first check
+data <- read_csv("/Users/valentinaparma/Documents/GitHub/GCCR001/analysis/paper/Covid_Results_GCCR001.csv")
+str(data)
+
+
+# Include only the relevant variables for the pre-registered GCCR001 analysis, posted at https://osf.io/auhs8/
+keeps <- c("Year_of_birth", "Country_of_Residence", "Gender", "Combustible_cigarette_use_no", "E-cigarette_use_no","Symptoms_changes_in_smell", "COVID_diagnosis", "Smell_before_illness", "Smell_during_illness", "Changes_in_smell_i_cannot_smell_at_all_/_smells_smell_less_strong_than_they_did_before", "Changes_in_smell_smells_smell_different_than_they_did_before_(the_quality_of_smell_has_changed)", "Changes_in_smell_i_can_smell_things_that_aren't_there_(for_example_i_smell_burning_when_nothing_is_on_fire)", "Changes_in_smell_sense_of_smell_fluctuates_(comes_and_goes)", "Blocked_nose_before_illness", "Blocked_nose_during_illness", "Taste_before_illness", "Taste_during_illness", "Changes_in_basic_tastes_sweet", "Changes_in_basic_tastes_salty", "Changes_in_basic_tastes_sour", "Changes_in_basic_tastes_bitter", "Changes_in_basic_tastes_savory/umami", "Chemethesis_before_illness","Chemesthesis_during_illness", "ID")
+data_select<-data[keeps]
+
+# Add ID column
+# !!!!!!!!Confirm that there are no duplicate IDs that we can identify via emails 
+data_select$ID <- seq.int(nrow(data_select))
+
+# Exclusion criteria. Missing values on smell, taste, chemesthesis ratings before and during
+data_select_nomiss<-data_select[!is.na(data_select$Smell_before_illness) & 
+                                !is.na(data_select$Smell_during_illness) & 
+                                !is.na(data_select$Taste_before_illness) & 
+                                !is.na(data_select$Taste_during_illness) & 
+                                !is.na(data_select$Chemethesis_before_illness) & 
+                                !is.na(data_select$Chemesthesis_during_illness), 
+                                !is.na(data_select$Blocked_nose_before_illness) & 
+                                !is.na(data_select$Blocked_nose_during_illness), ]
+
+# Create the change score
+data_select_nomiss$Smell_change<-(data_select_nomiss$Smell_during_illness - data_select_nomiss$Smell_before_illness)
+data_select_nomiss$Taste_change<-(data_select_nomiss$Taste_during_illness - data_select_nomiss$Taste_before_illness)
+data_select_nomiss$Chemesthesis_change<-(data_select_nomiss$Chemesthesis_during_illness - data_select_nomiss$Chemethesis_before_illness)
+data_select_nomiss$Nasal_patency_change<-(data_select_nomiss$Blocked_nose_during_illness - data_select_nomiss$Blocked_nose_before_illness)
+
+# Sanity checks. If "Symptoms changing in smell = yes" then one of these must be yes as well 
+#"Changes_in_smell_i_cannot_smell_at_all_/_smells_smell_less_strong_than_they_did_before", #"Changes_in_smell_smells_smell_different_than_they_did_before_(the_quality_of_smell_has_changed)", #"Changes_in_smell_i_can_smell_things_that_aren't_there_(for_example_i_smell_burning_when_nothing_is_on_fire)", #"Changes_in_smell_sense_of_smell_fluctuates_(comes_and_goes)"
+# If "Symptoms changing in smell = yes" then the smell change score must be above +/-5
+
+# Simplify the visualization of variables
+data_select_nomiss$smell_loss<- data_select_nomiss$`Changes_in_smell_i_cannot_smell_at_all_/_smells_smell_less_strong_than_they_did_before`
+data_select_nomiss$parosmia<- data_select_nomiss$`Changes_in_smell_smells_smell_different_than_they_did_before_(the_quality_of_smell_has_changed)`
+data_select_nomiss$phantosmia<- data_select_nomiss$`Changes_in_smell_i_can_smell_things_that_aren't_there_(for_example_i_smell_burning_when_nothing_is_on_fire)`
+data_select_nomiss$smell_fluctuations<- data_select_nomiss$`Changes_in_smell_sense_of_smell_fluctuates_(comes_and_goes)`
+  
+# Create a new summary sanity check variable
+data_select_nomiss<- as.tibble(data_select_nomiss)
+data_select_nomiss$Gender<-recode(data_select_nomiss$Gender, `0` = "Female", `1` = "Male", `2` = "Other", `3` = "Prefer not to say")
+
+data_select_nomiss <- mutate(data_select_nomiss, Sanity_check = ifelse(Symptoms_changes_in_smell == 1 && Smell_change >= 5, 1,
+                                             ifelse(Symptoms_changes_in_smell == 1 && Smell_change <= 5, 1,
+                                             ifelse(Symptoms_changes_in_smell == 1 && data_select_nomiss$smell_loss == 1, 1,
+                                             ifelse(Symptoms_changes_in_smell == 1 && data_select_nomiss$parosmia == 1, 1,
+                                             ifelse(Symptoms_changes_in_smell == 1 && data_select_nomiss$phantosmia == 1, 1,
+                                             ifelse(Symptoms_changes_in_smell == 1 && data_select_nomiss$smell_fluctuations == 1,1,0)))))))                                             
+          
+
+# Create COVID-19 diagnostic groups
+# COVID_diagnosis = 1 clinical examination
+# COVID_diagnosis = 2 & 3 Lab tested
+
+data_select_nomiss<- mutate(data_select_nomiss, Group = ifelse(COVID_diagnosis == 1, "Clinical exam",
+                                                        ifelse(COVID_diagnosis == 2 | COVID_diagnosis == 3, "Lab test", "Remove")))
+
+str(data_select_nomiss)
+
+data_select_nomiss$Age <- 2020-data_select_nomiss$Year_of_birth
+data_select_nomiss<-as.data.frame(data_select_nomiss)
+keeps2 <- c("Age", "Country_of_Residence", "Gender", "Combustible_cigarette_use_no", "E-cigarette_use_no", "COVID_diagnosis", "Smell_change", "Taste_change", "Chemesthesis_change", "Nasal_patency_change", "smell_loss", "parosmia", "phantosmia", "smell_fluctuations","Changes_in_basic_tastes_sweet", "Changes_in_basic_tastes_salty", "Changes_in_basic_tastes_sour", "Changes_in_basic_tastes_bitter", "Changes_in_basic_tastes_savory/umami", "Sanity_check", "Group", "ID")
+data_select_nomiss2<-data_select_nomiss[keeps2]
+
+# Create final database COVID-19 only
+data_GCCR001 <- subset(data_select_nomiss2, Group == "Lab test" | Group == "Clinical exam")
+table(data_GCCR001$Country_of_Residence)
+
+data_GCCR001$Group<-factor(data_GCCR001$Group)
+data_GCCR001$Gender<-factor(data_GCCR001$Gender)
+data_GCCR001$Gender <- relevel(data_GCCR001$Gender, ref = "Male")
+data_GCCR001$Gender <- relevel(data_GCCR001$Gender, ref = "Female")
+str(data_GCCR001)
+
+########################
+
+# Age by Group
+
+# for reproducibility
+set.seed(123)
+# plot
+ggstatsplot::grouped_gghistostats(
+  data = data_GCCR001,
+  x = Age,
+  xlab = "Age (in years))",
+  type = "robust", # use robust location measure
+  grouping.var = Group, # grouping variable
+  title.prefix = "Reported diagnosis",
+  normal.curve = TRUE, # superimpose a normal distribution curve
+  normal.curve.args = list(color = "red", size = 1),
+  ggtheme = ggthemes::theme_tufte(),
+  ggplot.component = list( # modify the defaults from `ggstatsplot` for each plot
+    ggplot2::scale_x_continuous(breaks = seq(0, 100, 10), limits = (c(0, 100)))
+  ),
+  messages = FALSE,
+  #plotgrid.args = list(nrow = 2),
+  title.text = "Age in COVID-19 lab tested vs. clinically examined respondents"
+)
+
+
+# Gender by Group
+#!!!! Order of labels and color of the scale need adjustment
+
+tiff("GCCR001_PlotGender.tiff", width = 12, height = 5, units = 'in', res = 300)
+# for reproducibility
+set.seed(123)
+
+# plot
+ggstatsplot::grouped_ggpiestats(
+  data = data_GCCR001,
+  x = Gender,
+  grouping.var = Group, # grouping variable
+  title.prefix = "Reported diagnosis", # prefix for the facetted title
+  messages = FALSE,
+  ggtheme = ggthemes::theme_tufte(),
+  title.text = "Gender in COVID-19 lab tested vs. clinically examined respondents"
+)
+
+dev.off()
+
+
+# Smell Change by Group
+tiff("GCCR001_PlotSmellChange.tiff", width = 15, height = 5, units = 'in', res = 300)
+# for reproducibility
+set.seed(123)
+
+# plot
+ggstatsplot::grouped_gghistostats(
+  data = data_GCCR001,
+  x = Smell_change,
+  xlab = "Smell change",
+  type = "robust", # use robust location measure
+  grouping.var = Group, # grouping variable
+  title.prefix = "Reported diagnosis",
+  normal.curve = TRUE, # superimpose a normal distribution curve
+  normal.curve.args = list(color = "red", size = 1),
+  ggtheme = ggthemes::theme_tufte(),
+  ggplot.component = list( # modify the defaults from `ggstatsplot` for each plot
+    ggplot2::scale_x_continuous(breaks = seq(-100, 10, 10), limits = (c(-100, 10)))
+  ),
+  messages = FALSE,
+  #plotgrid.args = list(nrow = 2),
+  title.text = "Smell change during - before disease in \n COVID-19 lab tested vs. clinically examined respondents"
+)
+dev.off()
+
+# Are the distribution similar?
+data_GCCR001_Clin<- subset(data_GCCR001, Group == 1)
+data_GCCR001_Test<- subset(data_GCCR001, Group == 2)
+data_GCCR001_ks<-merge(data_GCCR001_Clin$Smell_change, data_GCCR001_Test$Smell_change)
+str(data_GCCR001_ks)
+data_GCCR001_ks$Clinical<- data_GCCR001_ks$x
+data_GCCR001_ks$Test<- data_GCCR001_ks$y
+ks.test(data_GCCR001_ks$Clinical,data_GCCR001_ks$Test)
+
+
+# Smell change - characterization
+tiff("GCCR001_PlotSmellChange_Characterization.tiff", width = 12, height = 5, units = 'in', res = 300)
+# for reproducibility
+set.seed(123)
+
+# correlation matrix plot
+ggstatsplot::grouped_ggcorrmat(
+  data = data_GCCR001,
+  cor.vars = c(Smell_change, smell_loss, parosmia, phantosmia, smell_fluctuations, Nasal_patency_change),
+  cor.vars.names = c(
+    "Smell change", # variable names
+    "Loss",
+    "Parosmia",
+    "Phantosmia",
+    "Fluctuations",
+    "Nasal patency change"
+  ),
+  type = "robust", # correlation method
+  sig.level = 0.001, # threshold of significance
+  p.adjust.method = "holm", # p-value adjustment method for multiple comparisons
+  colors = c("#B2182B", "white", "#4D4D4D", "red"),
+  grouping.var = Group, # grouping variable
+  k = 2, # number of digits after decimal point
+  title.prefix = "Reported diagnosis",
+  messages = FALSE,
+  plotgrid.args = list(ncol = 2))
+  dev.off()
+  
+  
+# Taste Change by Group
+tiff("GCCR001_PlotTasteChange.tiff", width = 15, height = 5, units = 'in', res = 300)
+# for reproducibility
+set.seed(123)
+
+# plot
+ggstatsplot::grouped_gghistostats(
+  data = data_GCCR001,
+  x = Taste_change,
+  xlab = "Taste change",
+  type = "robust", # use robust location measure
+  grouping.var = Group, # grouping variable
+  title.prefix = "Reported diagnosis",
+  normal.curve = TRUE, # superimpose a normal distribution curve
+  normal.curve.args = list(color = "red", size = 1),
+  ggtheme = ggthemes::theme_tufte(),
+  ggplot.component = list( # modify the defaults from `ggstatsplot` for each plot
+    ggplot2::scale_x_continuous(breaks = seq(-100, 10, 10), limits = (c(-100, 10)))
+  ),
+  messages = FALSE,
+  #plotgrid.args = list(nrow = 2),
+  title.text = "Taste change during - before disease in \n COVID-19 lab tested vs. clinically examined respondents"
+)
+dev.off()
+
+
+# Are the distribution similar?
+data_GCCR001_ks_taste<-merge(data_GCCR001_Clin$Taste_change, data_GCCR001_Test$Taste_change)
+str(data_GCCR001_ks_taste)
+data_GCCR001_ks_taste$Clinical<- data_GCCR001_ks_taste$x
+data_GCCR001_ks_taste$Test<- data_GCCR001_ks_taste$y
+ks.test(data_GCCR001_ks_taste$Clinical,data_GCCR001_ks_taste$Test)
+
+
+# Taste change - characterization
+tiff("GCCR001_PlotTasteChange_Characterization.tiff", width = 12, height = 5, units = 'in', res = 300)
+# for reproducibility
+set.seed(123)
+
+# correlation matrix plot
+ggstatsplot::grouped_ggcorrmat(
+  data = data_GCCR001,
+  cor.vars = c(Taste_change, Changes_in_basic_tastes_sweet, Changes_in_basic_tastes_salty, Changes_in_basic_tastes_sour, Changes_in_basic_tastes_bitter, `Changes_in_basic_tastes_savory/umami`),
+  cor.vars.names = c(
+    "Taste change", # variable names
+    "Sweet",
+    "Salt",
+    "Sour",
+    "Bitter",
+    "Umami"
+  ),
+  type = "robust", # correlation method
+  sig.level = 0.001, # threshold of significance
+  p.adjust.method = "holm", # p-value adjustment method for multiple comparisons
+  colors = c("#B2182B", "white", "#4D4D4D"),
+  grouping.var = Group, # grouping variable
+  k = 2, # number of digits after decimal point
+  title.prefix = "Reported diagnosis",
+  messages = FALSE,
+  plotgrid.args = list(ncol = 2))
+  dev.off()
+  
+  
+# Chemestesis change 
+tiff("GCCR001_PlotChemesthesisChange.tiff", width = 15, height = 5, units = 'in', res = 300)
+# for reproducibility
+set.seed(123)
+
+# plot
+ggstatsplot::grouped_gghistostats(
+  data = data_GCCR001,
+  x = Chemesthesis_change,
+  xlab = "Chemesthesis change",
+  type = "robust", # use robust location measure
+  grouping.var = Group, # grouping variable
+  title.prefix = "Reported diagnosis",
+  normal.curve = TRUE, # superimpose a normal distribution curve
+  normal.curve.args = list(color = "red", size = 1),
+  ggtheme = ggthemes::theme_tufte(),
+  ggplot.component = list( # modify the defaults from `ggstatsplot` for each plot
+    ggplot2::scale_x_continuous(breaks = seq(-100, 100, 10), limits = (c(-100, 100)))
+  ),
+  messages = FALSE,
+  #plotgrid.args = list(nrow = 2),
+  title.text = "Chemesthesis change during - before disease in \n COVID-19 lab tested vs. clinically examined respondents"
+)
+dev.off()
+
+
+# Are the distribution similar?
+data_GCCR001_ks_chemesthesis<-merge(data_GCCR001_Clin$Chemesthesis_change, data_GCCR001_Test$Chemesthesis_change)
+str(data_GCCR001_ks_chemesthesis)
+data_GCCR001_ks_chemesthesis$Clinical<- data_GCCR001_ks_chemesthesis$x
+data_GCCR001_ks_chemesthesis$Test<- data_GCCR001_ks_chemesthesis$y
+ks.test(data_GCCR001_ks_chemesthesis$Clinical,data_GCCR001_ks_chemesthesis$Test)
+
+
+# Nasal patency change 
+tiff("GCCR001_PlotNasalPatencyChange.tiff", width = 15, height = 5, units = 'in', res = 300)
+# for reproducibility
+set.seed(123)
+
+# plot
+ggstatsplot::grouped_gghistostats(
+  data = data_GCCR001,
+  x = Nasal_patency_change,
+  xlab = "Nasal patency change",
+  type = "robust", # use robust location measure
+  grouping.var = Group, # grouping variable
+  title.prefix = "Reported diagnosis",
+  normal.curve = TRUE, # superimpose a normal distribution curve
+  normal.curve.args = list(color = "red", size = 1),
+  ggtheme = ggthemes::theme_tufte(),
+  ggplot.component = list( # modify the defaults from `ggstatsplot` for each plot
+    ggplot2::scale_x_continuous(breaks = seq(-100, 100, 10), limits = (c(-100, 100)))
+  ),
+  messages = FALSE,
+  #plotgrid.args = list(nrow = 2),
+  title.text = "Nasal patency change during - before disease in \n COVID-19 lab tested vs. clinically examined respondents"
+)
+dev.off()
+  
+# Are the distribution similar?
+data_GCCR001_ks_nasalpatency<-merge(data_GCCR001_Clin$Nasal_patency_change, data_GCCR001_Test$Nasal_patency_change)
+str(data_GCCR001_ks_nasalpatency)
+data_GCCR001_ks_nasalpatency$Clinical<- data_GCCR001_ks_nasalpatency$x
+data_GCCR001_ks_nasalpatency$Test<- data_GCCR001_ks_nasalpatency$y
+ks.test(data_GCCR001_ks_nasalpatency$Clinical,data_GCCR001_ks_nasalpatency$Test)
+
+```
+
+
+```{r ratings}
+#SMELL
+data_GCCR001$Group<-as.numeric(data_GCCR001$Group)
+(bfttest_smell <- ttestBF(formula = Smell_change ~ Group, data = data_GCCR001))[1]
+bfttest_smell[1] # Evidence for difference bigger than 0 vs null (no difference)
+#bfttest_smell[1] / bfttest_smell[2] # Evidence for difference bigger than 0 vs smaller than zero
+
+
+#On top of a Theory testing approach, we will quantify the uncertainty about the parameters by sampling from the posteriori through 10000 iteration of the Markov Chain Monte Carlo sampler implemented in the Bayes Factor library:
+
+(bfttest_smell <- ttestBF(formula = Smell_change ~ Group, data = data_GCCR001))
+chains = posterior(bfttest_smell, iterations = 1e4)
+summary(chains[,'beta (1 - 2)'][chains[, 'beta (1 - 2)'] < 0])
+plot(chains[,2])
+
+#PATENCY 
+(bfttest_patency <- ttestBF(formula = Nasal_patency_change ~ Group, data = data_GCCR001))[1]
+bfttest_patency[1] # Evidence for difference bigger than 0 vs null (no difference)
+bfttest_patency[1] / bfttest_patency[2] # Evidence for difference bigger than 0 vs smaller than zero
+
+
+#On top of a Theory testing approach, we will quantify the uncertainty about the parameters by sampling from the posteriori through 10000 iteration of the Markov Chain Monte Carlo sampler implemented in the Bayes Factor library:
+
+#(bfttest_patency2 <- ttestBF(Nasal_patency_change ~ Group, data = data_GCCR001))
+chains = posterior(bfttest_patency, iterations = 1e4)
+summary(chains[,'beta (Clinical exam - Lab test)'][chains[, 'beta (Clinical exam - Lab test)'] < 0])
+
+
+# To test whether smell changes are associated to changes in nasal patency, we will run the following model: 
+lmBF(Smell_change ~ Nasal_patency_change * Group + ID, whichRandom ="ID", data = data_GCCR001)
+
+#TASTE
+(bfttest_taste <- ttestBF(formula = Taste_change ~ Group, data = data_GCCR001))[1]
+bfttest_taste[1] # Evidence for difference bigger than 0 vs null (no difference)
+bfttest_taste[1] / bfttest_taste[2] # Evidence for difference bigger than 0 vs smaller than zero
+
+
+#On top of a Theory testing approach, we will quantify the uncertainty about the parameters by sampling from the posteriori through 10000 iteration of the Markov Chain Monte Carlo sampler implemented in the Bayes Factor library:
+
+#(bfttest2 <- ttestBF(formula = Taste_change ~ Group, data = data_GCCR001))
+chains = posterior(bfttest_taste, iterations = 1e4)
+summary(chains[,'beta (Clinical exam - Lab test)'][chains[, 'beta (Clinical exam - Lab test)'] < 0])
+
+
+#CHEMESTHESIS
+(bfttest_chemesthesis <- ttestBF(formula = Chemesthesis_change ~ Group, data = data_GCCR001))[1]
+bfttest_chemesthesis[1] # Evidence for difference bigger than 0 vs null (no difference)
+bfttest_chemesthesis[1] / bfttest_chemesthesis[2] # Evidence for difference bigger than 0 vs smaller than zero
+
+
+#On top of a Theory testing approach, we will quantify the uncertainty about the parameters by sampling from the posteriori through 10000 iteration of the Markov Chain Monte Carlo sampler implemented in the Bayes Factor library:
+
+#(bfttest2 <- ttestBF(formula = Chemesthesis_change ~ Group, data = data_GCCR001))
+chains = posterior(bfttest_chemesthesis, iterations = 1e4)
+summary(chains[,'beta (Clinical exam - Lab test)'][chains[, 'beta (Clinical exam - Lab test)'] < 0])
+
+```
+
+
+# PROPOSAL SHINY APP?
+
+```{r multisensory}
+#modalities all together
+lmBF((during-before rating) ~ modality*group+ ID, whichRandom="ID", data = data)
+
+
+colors <- c("#999999", "#E69F00", "#56B4E9")
+colors <- colors[as.numeric(data$country)]
+scatterplot3d(iris[,6:8], pch = 16, color = colors)
+legend("bottom", legend = levels(data$country),
+       col =  c("#999999", "#E69F00", "#56B4E9"), pch = 16,
+       inset = -0.25, xpd = TRUE, horiz = TRUE)
+
+```
