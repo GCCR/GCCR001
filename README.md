@@ -7,22 +7,15 @@
 
 This repository contains the data and code for our paper:
 
-> Authors, (YYYY). *Title of your paper goes here*. Name of journal/book
-> <https://doi.org/xxx/xxx>
+> Parma et. al, (2020). *More Than Smell—COVID-19 Is Associated With Severe Impairment of Smell, Taste, and Chemesthesis*. Chemical Senses, Volume 45, Issue 7
+> <https://doi.org/10.1093/chemse/bjaa041>
 
-Our pre-print is online here:
-
-> Authors, (YYYY). *Title of your paper goes here*. Name of
-> journal/book, Accessed 14 Apr 2020. Online at
-> <https://doi.org/xxx/xxx>
 
 ### How to cite
 
 Please cite this compendium as:
 
-> Authors, (2020). *Compendium of R code and data for Title of your
-> paper goes here*. Accessed 14 Apr 2020. Online at
-> <https://doi.org/xxx/xxx>
+> Valentina Parma, Kathrin Ohla, Maria G Veldhuizen, Masha Y Niv, Christine E Kelly, Alyssa J Bakke, Keiland W Cooper, Cédric Bouysset, Nicola Pirastu, Michele Dibattista, Rishemjit Kaur, Marco Tullio Liuzza, Marta Y Pepino, Veronika Schöpf, Veronica Pereda-Loth, Shannon B Olsson, Richard C Gerkin, Paloma Rohlfs Domínguez, Javier Albayay, Michael C Farruggia, Surabhi Bhutani, Alexander W Fjaeldstad, Ritesh Kumar, Anna Menini, Moustafa Bensafi, Mari Sandell, Iordanis Konstantinidis, Antonella Di Pizio, Federica Genovese, Lina Öztürk, Thierry Thomas-Danguin, Johannes Frasnelli, Sanne Boesveldt, Özlem Saatci, Luis R Saraiva, Cailu Lin, Jérôme Golebiowski, Liang-Dar Hwang, Mehmet Hakan Ozdener, Maria Dolors Guàrdia, Christophe Laudamiel, Marina Ritchie, Jan Havlícek, Denis Pierron, Eugeni Roura, Marta Navarro, Alissa A Nolden, Juyun Lim, Katherine L Whitcroft, Lauren R Colquitt, Camille Ferdenzi, Evelyn V Brindha, Aytug Altundag, Alberto Macchi, Alexia Nunez-Parra, Zara M Patel, Sébastien Fiorucci, Carl M Philpott, Barry C Smith, Johan N Lundström, Carla Mucignat, Jane K Parker, Mirjam van den Brink, Michael Schmuker, Florian Ph S Fischmeister, Thomas Heinbockel, Vonnie D C Shields, Farhoud Faraji, Enrique Santamaría, William E A Fredborg, Gabriella Morini, Jonas K Olofsson, Maryam Jalessi, Noam Karni, Anna D’Errico, Rafieh Alizadeh, Robert Pellegrino, Pablo Meyer, Caroline Huart, Ben Chen, Graciela M Soler, Mohammed K Alwashahi, Antje Welge-Lüssen, Jessica Freiherr, Jasper H B de Groot, Hadar Klein, Masako Okamoto, Preet Bano Singh, Julien W Hsieh, GCCR Group Author, Danielle R Reed, Thomas Hummel, Steven D Munger, John E Hayes, More Than Smell—COVID-19 Is Associated With Severe Impairment of Smell, Taste, and Chemesthesis, Chemical Senses, Volume 45, Issue 7, September 2020, Pages 609–622, <https://doi.org/10.1093/chemse/bjaa041>
 
 ## Contents
 
